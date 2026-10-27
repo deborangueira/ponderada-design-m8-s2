@@ -1,9 +1,6 @@
-# Ponderada de Design — Avaliação heurística e blueprint para definir o corte do monolito
+# Ponderada de Design: Avaliação heurística e blueprint para definir o corte do monolito
 
 > **Entrega em PDF:** [ponderada-design-m8-s2.pdf](./ponderada-design-m8-s2.pdf)
-
-**Aluna:** Débora Nogueira · **Módulo 8 · Projeto Atlas (DBSeller / e-Cidade) · Grupo Urbis (G03)**
-**Ambiente avaliado:** e-Cidade 2.4.1, ambiente de demonstração (`ecidade.demo.dbseller.com.br`), navegado em 27/10/2026. Nenhum registro foi criado ou alterado durante a avaliação.
 
 ---
 
@@ -43,15 +40,15 @@ Escala de severidade de 0 a 4 (Nielsen): 0 não é problema · 1 cosmético · 2
 | P12 | ![](assets/prints/11-modal-o-que-mudou.jpg) | H8 Estética e design minimalista | Ao abrir a tela de alteração, um modal "O que mudou:" interrompe o trabalho só com uma saudação, sem nenhuma mudança listada. | **1** | Aparece ao abrir telas · fecha-se com um clique · não impede a tarefa. |
 | P13 | ![](assets/prints/19-laboratorio-abas-deslocadas.jpg) | H4 Consistência e padrões | No cadastro do Laboratório, as abas mudam de posição depois que o registro carrega (a aba "Usuarios externos" se recolhe). Um clique em "Exames" caiu em "Ausências". | **1** | Acontece ao carregar o registro · fácil de corrigir com um novo clique · cosmético, mas aumenta erro de clique. |
 
-**Distribuição das severidades:** 4 → 1 · 3 → 4 · 2 → 6 · 1 → 2.
+**Distribuição das severidades:** 4 → 1; 3 → 4; 2 → 6; e 1 → 2.
 
 **Leitura.** Os problemas de severidade 3 e 4 (P1–P4, P6) não estão em uma tela só: aparecem porque a condição "o exame pode ser usado" depende de dados que ficam em telas e módulos diferentes (exame, auxiliares, setor do laboratório, procedimento e departamento do usuário) e nenhum ponto do sistema junta essas condições para mostrar ao servidor. Os de severidade 1 e 2 são de interface e se resolveriam com redesign das telas, sem mudar a arquitetura.
-
-> **Limite da avaliação.** Avaliadora única, em ambiente de demonstração e com usuário demo do departamento "1 - CPD". A validação da aba Exame ao salvar ("um aviso por vez") não foi refeita para não gravar dados no demo; a evidência está no AS-IS do grupo (`Projeto.md` §2.2.3, G2). A causa de P1 (departamento não ligado ao laboratório) é inferida do filtro documentado pelo grupo em `lab4_agendar.RPC.php`.
 
 ---
 
 ## 3. Blueprint as-is
+
+A avaliação heurística mostra onde o servidor sofre, tela por tela, mas não explica por que os problemas mais graves aparecem juntos. O service blueprint ajuda nisso: ele organiza a mesma jornada em camadas, do que o servidor faz e vê até o que o sistema faz por trás e quais módulos do monolito são acionados em cada etapa. Assim fica visível onde a tarefa atravessa módulos, que é onde o monolito está mais acoplado, e é possível ligar cada ponto de falha a um problema da avaliação. O blueprint abaixo retrata a jornada como ela é hoje (as-is) e serve de base para futuras decisões.
 
 **Arquivo no FigJam:** [Blueprint cadastro de exame (e-Cidade)](https://www.figma.com/board/oKgYfPOxCkoueY9JdVkwQN)
 
@@ -66,6 +63,8 @@ Escala de severidade de 0 a 4 (Nielsen): 0 não é problema · 1 cosmético · 2
 
 **Módulos do monolito na camada de suporte**
 
+Na camada de suporte, cada card representa um módulo do monolito que o sistema aciona para a etapa acontecer. A tabela abaixo reúne esses módulos e indica em quais etapas cada um aparece. Ela mostra que o cadastro de exame, embora pareça uma tarefa só do Laboratório, depende também da Configuração (departamento do usuário) e do Faturamento SUS (procedimentos SIGTAP).
+
 | Módulo | Onde aparece na jornada |
 |---|---|
 | DB:CONFIGURAÇÃO (menus, permissões, departamento do usuário) | Etapas 2 e 7 |
@@ -77,6 +76,8 @@ Escala de severidade de 0 a 4 (Nielsen): 0 não é problema · 1 cosmético · 2
 
 **Cruzamentos entre módulos (laranja)**
 
+Um cruzamento acontece quando uma mesma etapa precisa de dados ou regras de mais de um módulo. É ali que o monolito está mais acoplado e que uma mudança em um módulo pode quebrar a jornada em outro. No blueprint, eles estão marcados em laranja abaixo da camada de suporte.
+
 | ID | Onde | O que mostra |
 |---|---|---|
 | X1 | Etapa 5 · Exame ↔ SIGTAP | O que libera o exame para uso (procedimento ativo) é dado do Faturamento SUS, não do Laboratório |
@@ -84,6 +85,8 @@ Escala de severidade de 0 a 4 (Nielsen): 0 não é problema · 1 cosmético · 2
 | X3 | Etapa 7 · Exame + SIGTAP + Setor + Departamento | As 4 condições só se encontram no filtro da requisição. É o ponto mais acoplado da jornada |
 
 **Pontos de falha (vermelho) ligados à avaliação**
+
+Os pontos de falha são os momentos em que a jornada pode dar errado para o servidor. Cada um usa o mesmo ID da avaliação heurística (P1–P13), então dá para voltar à tabela do tópico 2 e ver o print, a heurística e a severidade. No blueprint, eles aparecem como marcadores vermelhos na célula onde o problema acontece e como uma lista na última linha.
 
 | Etapa | Camada | Pontos de falha |
 |---|---|---|
@@ -96,7 +99,11 @@ Escala de severidade de 0 a 4 (Nielsen): 0 não é problema · 1 cosmético · 2
 | 7 | Frontstage | P1, P8 |
 | 8 | Frontstage | P7 |
 
-**Leitura do blueprint.** Os pontos de falha mais severos ficam exatamente nas etapas com cruzamento:
+**Leitura do blueprint**
+
+Com os módulos, os cruzamentos e os pontos de falha no mesmo quadro, dá para cruzar essas informações e ver o que elas dizem juntas.
+
+Os pontos de falha mais severos ficam exatamente nas etapas com cruzamento:
 
 - P3 (sev 3) aparece no X1.
 - P4 (sev 3) aparece no X2.
@@ -158,10 +165,13 @@ O que é essencial foi decidido a partir do as-is. A tarefa mais frequente é sa
 
 **O que o JTBD acrescenta ao corte.** O job não é "preencher seis abas". É **ter certeza de que o exame pode ser usado**. Hoje o e-Cidade atende só a parte de registrar dados, e a certeza não tem dono, o que bate com o cruzamento X3. Por isso o primeiro serviço extraído é o que vende essa certeza (prontidão e alerta), e não o formulário. O formulário melhora o esforço, mas não o resultado que a servidora "contrata" o sistema para entregar.
 
-> **Limite.** O job foi formulado a partir da persona do grupo (uma conversa com a analista de Saúde da DBSeller em 20/10/2026) e da navegação no demo. Não foi validado com servidores de laboratório.
-
 ---
 
 ## 7. Declaração de uso de IA
 
 Usei o Claude (Anthropic), no modo Cowork, como assistente de pesquisa e documentação. Pelo volume de telas e imagens, pedi que ele navegasse no ambiente demo do e-Cidade (após meu login), capturasse os prints e os organizasse na pasta do trabalho e na tabela, cada um associado ao problema correspondente. Parti de uma lista preliminar de problemas feita por mim; o Claude a revisou, complementou e sugeriu a heurística e a severidade de cada item. Revisei, corrigi o que julguei necessário e consolidei a tabela final. Com base nas minhas anotações, ele estruturou os blueprints as-is e to-be no FigJam, que depois ajustei visualmente. Para a proposta de corte, ele apresentou três alternativas com prós e contras; a escolha do Serviço de Prontidão do Exame foi minha, e os textos foram redigidos em conjunto e revisados por mim. O objetivo foi tornar a análise mais robusta e manter a coerência entre as intormações.
+
+---
+## 8. Considerações finais
+
+O **Ambiente avaliado:** foi o e-Cidade 2.4.1 no ambiente de demonstração (`ecidade.demo.dbseller.com.br`), onde nenhum registro foi criado ou alterado durante a avaliação.
